@@ -38,7 +38,7 @@ Run the backend (`make api` in Riven-Backend) to see live data. No test runner e
 
 ## Guardrails (enforced)
 
-`.claude/hooks/guard.py` runs before every shell command and file edit and blocks: force push (`-f`, `--force`, `--force-with-lease`, `+refspec`), pushing to or deleting `main`, `--no-verify`, `git reset --hard`, `gh pr merge --admin`, changing repo visibility, deleting/archiving repos, Codespaces, changing branch protection or rulesets, editing `docs/tickets/`, and in workflows any licensed action (e.g. `gitleaks/gitleaks-action`) or non-standard (paid, larger) runner. `.claude/settings.json` also denies reading `.env` and always asks the user before `git push` and `gh pr merge`. If a guard blocks something the task genuinely needs, stop and ask the user; never work around it.
+`.claude/hooks/guard.py` runs before every shell command and file edit and blocks: force push (`-f`, `--force`, `--force-with-lease`, `+refspec`), pushing to or deleting `main`, `--no-verify`, `git reset --hard`, `gh pr merge --admin`, opening pull requests (`gh pr create` — the user opens PRs), changing repo visibility, deleting/archiving repos, Codespaces, changing branch protection or rulesets, editing `docs/tickets/`, and in workflows any licensed action (e.g. `gitleaks/gitleaks-action`) or non-standard (paid, larger) runner. `.claude/settings.json` also denies reading `.env` and always asks the user before `git push` and `gh pr merge`. If a guard blocks something the task genuinely needs, stop and ask the user; never work around it.
 
 The guard matches the whole command text, so a commit message or heredoc that merely mentions a blocked flag is also blocked; put such text in a file (`git commit -F <file>`).
 
@@ -52,11 +52,12 @@ When asked to do a ticket (e.g. "do S10.5" or "S10.3.2"):
 2. **Check the repo label.** Implement only tasks labelled `frontend` or `both` (UI half). If nothing is for this repo, stop and say it belongs to Riven-Backend.
 3. **Check dependencies**, especially the backend endpoints the UI needs: `gh pr list -R Riven-Org/Riven-Backend --state merged --search "<DEP-ID>"` and the backend's `/openapi.json`. If an endpoint doesn't exist yet, stop and report it; do not invent the API or mock it permanently. A temporary typed mock is acceptable only if the user agrees, and it must be listed as a follow-up.
 4. **Plan** by mapping every acceptance criterion to the screen or behaviour that satisfies it and how it is verified. Fill gaps in the terse task lines with the story description and epic context, never by widening scope.
-5. **Branch** from fresh main: `git switch main && git pull && git switch -c <ID>-<short-slug>`.
+5. **Branch** — every ticket starts from the latest main on a new branch: `git switch main && git pull --ff-only origin main && git switch -c <ID>-<short-slug>`. Never commit on main or reuse another ticket's branch.
 6. **Implement** only what the criteria require; record out-of-scope needs as follow-ups with their ticket IDs from `INDEX.md`.
 7. **Verify**: `npm run lint && npm run build`, tests for the behaviour once a runner exists, and run the dev server against the backend to check the flow in a browser in both light and dark mode.
-8. **Commit** as `<ID>: <summary>`; push; `gh pr create` filling the template: ticket ID, acceptance-criteria checklist (ticked only if proven), how it was tested, follow-ups including the backend half of `both` tasks.
-9. **CI**: `gh pr checks --watch`; fix until green. `main` is protected (PR + `web` and `secrets` checks). Do not merge unless the user asks.
-10. **Report** which criteria are met, which are not and why, and remind the user to move the ClickUp ticket.
+8. **Commit** as `<ID>: <summary>`.
+9. **Sync with main before every push**: `git fetch origin && git merge origin/main`. Resolve any conflicts by keeping both sides' intent (never drop the other change to make yours apply), re-run `npm run lint && npm run build`, and commit the merge. Use merge, not rebase, once the branch is pushed — rewriting pushed history would need a force push, which is blocked.
+10. **Push** the branch: `git push -u origin <branch>`. **Do not open a pull request** — the user opens it. CI runs on every branch push; watch it with `gh run watch $(gh run list --branch <branch> -L1 --json databaseId -q '.[0].databaseId')` and fix until green.
+11. **Report**: branch name, compare link `https://github.com/Riven-Org/Riven-Frontend/compare/main...<branch>?expand=1`, a ready-to-paste PR description (ticket ID, acceptance-criteria checklist ticked only if proven, how it was tested, follow-ups including the backend half of `both` tasks), which criteria are met or not and why, and a reminder to move the ClickUp ticket. Never merge.
 
 Ticket files are generated from the product backlog (also in ClickUp). Do not edit them by hand; if a ticket looks wrong, say so and ask.
