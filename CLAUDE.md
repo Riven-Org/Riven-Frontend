@@ -36,6 +36,12 @@ Run the backend (`make api` in Riven-Backend) to see live data. No test runner e
 - Accessibility is an acceptance criterion (WCAG 2.1 AA on core pages, E10): keyboard reachable, labelled controls, sufficient contrast in both themes.
 - Cost: the org is on free plans (GitHub Free). Use free/open-source libraries only; no paid SaaS, licensed GitHub Actions, or larger runners. If a ticket suggests a paid tool, use the free alternative and say so in the PR.
 
+## Guardrails (enforced)
+
+`.claude/hooks/guard.py` runs before every shell command and file edit and blocks: force push (`-f`, `--force`, `--force-with-lease`, `+refspec`), pushing to or deleting `main`, `--no-verify`, `git reset --hard`, `gh pr merge --admin`, changing repo visibility, deleting/archiving repos, Codespaces, changing branch protection or rulesets, editing `docs/tickets/`, and in workflows any licensed action (e.g. `gitleaks/gitleaks-action`) or non-standard (paid, larger) runner. `.claude/settings.json` also denies reading `.env` and always asks the user before `git push` and `gh pr merge`. If a guard blocks something the task genuinely needs, stop and ask the user; never work around it.
+
+The guard matches the whole command text, so a commit message or heredoc that merely mentions a blocked flag is also blocked; put such text in a file (`git commit -F <file>`).
+
 ## Implementing a ticket
 
 Ticket details live in `docs/tickets/`: `INDEX.md` lists every epic and story; `<story-id>.md` holds its description, acceptance criteria, dependencies, tech notes and tasks. A task ID like `S10.3.2` is inside `S10.3.md`. Each task is labelled **Repo: backend / frontend / both**.
