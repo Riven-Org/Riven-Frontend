@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
 import { api, ApiError } from '../api/client'
@@ -5,6 +6,10 @@ import type { IssuedKey, Permission, ServiceAccount } from '../api/types'
 import { useOrgs, usePermissions } from '../org/context'
 import { Modal } from '../ui/Modal'
 import { useToast } from '../ui/toast'
+import { KeyRound } from '../ui/icons'
+import { Stagger } from '../ui/motion'
+import { fadeUp, listItem } from '../ui/variants'
+import { PageHeader } from '../ui/PageHeader'
 
 type Kind = 'ai_agent' | 'ci' | 'bot'
 
@@ -88,17 +93,20 @@ export function ApiKeys() {
   if (!current) return null
 
   return (
-    <section className="page">
-      <header className="page-head rise">
-        <h1>API keys</h1>
-        <p className="muted">
-          Service accounts let AI agents, CI and bots submit changes. Every change they submit is
-          recorded under their identity, so Riven never lets a producer verify its own work.
-        </p>
-      </header>
+    <Stagger className="page">
+      <PageHeader
+        icon={KeyRound}
+        title="API keys"
+        subtitle="Service accounts let AI agents, CI and bots submit changes. Everything they submit is recorded under their identity, so Riven never lets a producer verify its own work."
+      />
 
       {canManage && (
-        <form className="card rise" onSubmit={createAccount} style={{ animationDelay: '60ms' }}>
+        <motion.form
+          className="card"
+          variants={fadeUp}
+          onSubmit={createAccount}
+          style={{ animationDelay: '60ms' }}
+        >
           <h2 className="card-title">New service account</h2>
           <div className="invite-row">
             <label className="field grow">
@@ -139,7 +147,7 @@ export function ApiKeys() {
             </button>
           </div>
           <p className="muted small">{KINDS.find((k) => k.value === kind)?.hint}</p>
-        </form>
+        </motion.form>
       )}
 
       {!accounts ? (
@@ -150,16 +158,18 @@ export function ApiKeys() {
           </div>
         </div>
       ) : accounts.length === 0 ? (
-        <div className="card empty rise">
+        <motion.div className="card empty" variants={fadeUp}>
           <p>No service accounts yet.</p>
           {canManage && <p className="muted">Create one above to connect an agent or CI.</p>}
-        </div>
+        </motion.div>
       ) : (
-        accounts.map((account, index) => (
-          <article
+        accounts.map((account) => (
+          <motion.article
             key={account.id}
-            className="card rise"
-            style={{ animationDelay: `${120 + index * 60}ms` }}
+            className="card card-glow"
+            variants={fadeUp}
+            layout
+            exit={{ opacity: 0, scale: 0.97 }}
           >
             <header className="account-head">
               <div>
@@ -195,58 +205,70 @@ export function ApiKeys() {
               <p className="muted">No active keys.</p>
             ) : (
               <ul className="rows">
-                {account.keys.map((key) => (
-                  <li key={key.id} className="row key-row">
-                    <code className="key-prefix">{key.prefix}_••••••••</code>
-                    <span className="row-main">
-                      <span className="scopes">
-                        {key.scopes.map((s) => (
-                          <span key={s} className="scope">
-                            {s}
-                          </span>
-                        ))}
+                <AnimatePresence initial={false}>
+                  {account.keys.map((key) => (
+                    <motion.li
+                      key={key.id}
+                      className="row key-row"
+                      variants={listItem}
+                      initial="hidden"
+                      animate="show"
+                      exit="exit"
+                      layout
+                    >
+                      <code className="key-prefix">{key.prefix}_••••••••</code>
+                      <span className="row-main">
+                        <span className="scopes">
+                          {key.scopes.map((s) => (
+                            <span key={s} className="scope">
+                              {s}
+                            </span>
+                          ))}
+                        </span>
+                        <span className="muted small">
+                          Created {relative(key.created_at)} · last used{' '}
+                          {relative(key.last_used_at)}
+                          {' · '}
+                          {key.expires_at
+                            ? `expires ${new Date(key.expires_at).toLocaleDateString()}`
+                            : 'never expires'}
+                        </span>
                       </span>
-                      <span className="muted small">
-                        Created {relative(key.created_at)} · last used {relative(key.last_used_at)}
-                        {' · '}
-                        {key.expires_at
-                          ? `expires ${new Date(key.expires_at).toLocaleDateString()}`
-                          : 'never expires'}
-                      </span>
-                    </span>
-                    {canManage && (
-                      <span className="actions">
-                        <button
-                          className="btn btn-sm"
-                          onClick={async () => {
-                            const issued = await run(() =>
-                              api<IssuedKey>(`/v1/orgs/${orgId}/api-keys/${key.id}/rotate`, {
-                                method: 'POST',
-                              }),
-                            )
-                            if (issued) setRevealed(issued)
-                          }}
-                        >
-                          Rotate
-                        </button>
-                        <button
-                          className="btn btn-sm btn-danger"
-                          onClick={() =>
-                            run(
-                              () => api(`/v1/orgs/${orgId}/api-keys/${key.id}`, { method: 'DELETE' }),
-                              'Key revoked',
-                            )
-                          }
-                        >
-                          Revoke
-                        </button>
-                      </span>
-                    )}
-                  </li>
-                ))}
+                      {canManage && (
+                        <span className="actions">
+                          <button
+                            className="btn btn-sm"
+                            onClick={async () => {
+                              const issued = await run(() =>
+                                api<IssuedKey>(`/v1/orgs/${orgId}/api-keys/${key.id}/rotate`, {
+                                  method: 'POST',
+                                }),
+                              )
+                              if (issued) setRevealed(issued)
+                            }}
+                          >
+                            Rotate
+                          </button>
+                          <button
+                            className="btn btn-sm btn-danger"
+                            onClick={() =>
+                              run(
+                                () =>
+                                  api(`/v1/orgs/${orgId}/api-keys/${key.id}`, { method: 'DELETE' }),
+                                'Key revoked',
+                              )
+                            }
+                          >
+                            Revoke
+                          </button>
+                        </span>
+                      )}
+                    </motion.li>
+                  ))}
+                </AnimatePresence>
               </ul>
             )}
-          </article>
+          </motion.article>
         ))
       )}
 
@@ -268,7 +290,7 @@ export function ApiKeys() {
         />
       )}
       {revealed && <RevealKey issued={revealed} onClose={() => setRevealed(null)} />}
-    </section>
+    </Stagger>
   )
 }
 

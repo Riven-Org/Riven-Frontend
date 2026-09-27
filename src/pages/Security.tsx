@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useState } from 'react'
 
 import { api, ApiError } from '../api/client'
@@ -6,6 +7,10 @@ import { useAuth } from '../auth/context'
 import { oidcConfig } from '../config'
 import { useOrgs, usePermissions } from '../org/context'
 import { useToast } from '../ui/toast'
+import { ShieldCheck } from '../ui/icons'
+import { Stagger } from '../ui/motion'
+import { fadeUp, listItem } from '../ui/variants'
+import { PageHeader } from '../ui/PageHeader'
 
 function since(iso: string): string {
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
@@ -25,13 +30,12 @@ export function Security() {
 
   const load = useCallback(
     () =>
-      Promise.all([
-        api<SecurityState>('/v1/me/security'),
-        api<Session[]>('/v1/me/sessions'),
-      ]).then(([status, list]) => {
-        setSecurity(status)
-        setSessions(list)
-      }),
+      Promise.all([api<SecurityState>('/v1/me/security'), api<Session[]>('/v1/me/sessions')]).then(
+        ([status, list]) => {
+          setSecurity(status)
+          setSessions(list)
+        },
+      ),
     [],
   )
 
@@ -58,14 +62,15 @@ export function Security() {
   const others = sessions?.filter((s) => !s.current) ?? []
 
   return (
-    <section className="page">
-      <header className="page-head rise">
-        <h1>Security</h1>
-        <p className="muted">Two-factor authentication and where you're signed in.</p>
-      </header>
+    <Stagger className="page">
+      <PageHeader
+        icon={ShieldCheck}
+        title="Security"
+        subtitle="Two-factor authentication and where you're signed in."
+      />
 
       <div className="grid">
-        <article className="card rise" style={{ animationDelay: '60ms' }}>
+        <motion.article className="card" variants={fadeUp}>
           <h2 className="card-title">Two-factor authentication</h2>
           {!security ? (
             <div className="skeleton-lines" aria-busy="true">
@@ -102,10 +107,10 @@ export function Security() {
               )}
             </div>
           )}
-        </article>
+        </motion.article>
 
         {current && can('org.security') && (
-          <article className="card rise" style={{ animationDelay: '120ms' }}>
+          <motion.article className="card" variants={fadeUp}>
             <h2 className="card-title">{current.name} policy</h2>
             <label className="switch">
               <input
@@ -132,11 +137,11 @@ export function Security() {
               Members without it are asked to set it up at their next sign-in and can't open this
               organization until they do.
             </p>
-          </article>
+          </motion.article>
         )}
       </div>
 
-      <article className="card rise" style={{ animationDelay: '180ms' }}>
+      <motion.article className="card" variants={fadeUp}>
         <header className="account-head">
           <h2 className="card-title">Active sessions</h2>
           {others.length > 0 && (
@@ -160,39 +165,49 @@ export function Security() {
           </div>
         ) : (
           <ul className="rows">
-            {sessions.map((s) => (
-              <li key={s.id} className="row">
-                <span className="session-icon" aria-hidden="true">
-                  ⌁
-                </span>
-                <span className="row-main">
-                  <strong>
-                    {s.ip_address || 'Unknown address'}{' '}
-                    {s.current && <span className="pill">This session</span>}
-                  </strong>
-                  <span className="muted small">
-                    Signed in {since(s.started_at)} · active {since(s.last_access_at)}
-                    {s.clients.length ? ` · ${s.clients.join(', ')}` : ''}
+            <AnimatePresence initial={false}>
+              {sessions.map((s) => (
+                <motion.li
+                  key={s.id}
+                  className="row"
+                  variants={listItem}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                  layout
+                >
+                  <span className="session-icon" aria-hidden="true">
+                    ⌁
                   </span>
-                </span>
-                {!s.current && (
-                  <button
-                    className="btn btn-sm btn-danger"
-                    onClick={() =>
-                      run(
-                        () => api(`/v1/me/sessions/${s.id}`, { method: 'DELETE' }),
-                        'Session signed out',
-                      )
-                    }
-                  >
-                    Revoke
-                  </button>
-                )}
-              </li>
-            ))}
+                  <span className="row-main">
+                    <strong>
+                      {s.ip_address || 'Unknown address'}{' '}
+                      {s.current && <span className="pill">This session</span>}
+                    </strong>
+                    <span className="muted small">
+                      Signed in {since(s.started_at)} · active {since(s.last_access_at)}
+                      {s.clients.length ? ` · ${s.clients.join(', ')}` : ''}
+                    </span>
+                  </span>
+                  {!s.current && (
+                    <button
+                      className="btn btn-sm btn-danger"
+                      onClick={() =>
+                        run(
+                          () => api(`/v1/me/sessions/${s.id}`, { method: 'DELETE' }),
+                          'Session signed out',
+                        )
+                      }
+                    >
+                      Revoke
+                    </button>
+                  )}
+                </motion.li>
+              ))}
+            </AnimatePresence>
           </ul>
         )}
-      </article>
-    </section>
+      </motion.article>
+    </Stagger>
   )
 }

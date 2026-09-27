@@ -1,6 +1,7 @@
+import { motion } from 'motion/react'
 import { useEffect, useRef, type ReactNode } from 'react'
 
-/** Accessible dialog on top of the native <dialog> element (focus trap, Esc to close). */
+/** Accessible dialog on the native <dialog> element (focus trap, Esc) with a spring entrance. */
 export function Modal({
   title,
   onClose,
@@ -20,10 +21,15 @@ export function Modal({
 
   return (
     <dialog ref={ref} className="modal" aria-label={title} onCancel={onClose}>
-      <div className="modal-body pop">
+      <motion.div
+        className="modal-body"
+        initial={{ opacity: 0, y: 24, scale: 0.94 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+      >
         <h2>{title}</h2>
         {children}
-      </div>
+      </motion.div>
     </dialog>
   )
 }
