@@ -1,22 +1,22 @@
-import { useEffect, useState } from 'react'
-
-type ApiState = 'checking' | 'up' | 'down'
+import { AppShell } from './AppShell'
+import { useAuth } from './auth/context'
+import { AuthCallback } from './pages/AuthCallback'
+import { Home } from './pages/Home'
+import { SignIn } from './pages/SignIn'
+import { usePath } from './router'
+import { Spinner } from './ui/Spinner'
 
 function App() {
-  const [api, setApi] = useState<ApiState>('checking')
+  const path = usePath()
+  const { user, ready } = useAuth()
 
-  useEffect(() => {
-    fetch('/api/health')
-      .then((res) => setApi(res.ok ? 'up' : 'down'))
-      .catch(() => setApi('down'))
-  }, [])
-
+  if (path === '/auth/callback') return <AuthCallback />
+  if (!ready) return <Spinner label="Loading…" />
+  if (!user) return <SignIn />
   return (
-    <main className="shell">
-      <h1>Riven</h1>
-      <p className="tagline">Verify. Remember. Learn from every change.</p>
-      <p className={`status status-${api}`}>API: {api}</p>
-    </main>
+    <AppShell>
+      <Home />
+    </AppShell>
   )
 }
 

@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "api:types": "npx --yes openapi-typescript@7 http://localhost:8000/openapi.json -o src/api/schema.d.ts"
   },
   "dependencies": {
+    "oidc-client-ts": "^3.5.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
