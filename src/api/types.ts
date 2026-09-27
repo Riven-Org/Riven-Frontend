@@ -11,3 +11,9 @@ export type Permission = Schemas['Permission']
 export type Role = Schemas['Role']
 
 export const ROLES: Role[] = ['owner', 'admin', 'maintainer', 'reviewer', 'viewer']
+
+export type ServiceAccount = Schemas['AccountOut']
+export type ApiKey = Schemas['KeyOut']
+export type IssuedKey = Schemas['IssuedKeyOut']
+export type Change = Schemas['ChangeOut']
+export type ProducerKind = Schemas['ProducerKind']

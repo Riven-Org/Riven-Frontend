@@ -219,6 +219,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/orgs/{org_id}/service-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Accounts
+         * @description Service accounts and their active keys (never the secrets).
+         */
+        get: operations["list_accounts_v1_orgs__org_id__service_accounts_get"];
+        put?: never;
+        /** Create Account */
+        post: operations["create_account_v1_orgs__org_id__service_accounts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{org_id}/service-accounts/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Disable Account
+         * @description Disable the account and revoke all its keys.
+         */
+        delete: operations["disable_account_v1_orgs__org_id__service_accounts__account_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{org_id}/service-accounts/{account_id}/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Key
+         * @description Issue a key. The response is the only time the secret is visible.
+         */
+        post: operations["create_key_v1_orgs__org_id__service_accounts__account_id__keys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{org_id}/api-keys/{key_id}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate Key
+         * @description Replace a key with a new secret (same scopes and lifetime); the old one stops working.
+         */
+        post: operations["rotate_key_v1_orgs__org_id__api_keys__key_id__rotate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{org_id}/api-keys/{key_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Key */
+        delete: operations["revoke_key_v1_orgs__org_id__api_keys__key_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{org_id}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Changes */
+        get: operations["list_changes_v1_orgs__org_id__changes_get"];
+        put?: never;
+        /**
+         * Submit Change
+         * @description Capture a change for verification, attributed to the authenticated caller.
+         */
+        post: operations["submit_change_v1_orgs__org_id__changes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{org_id}/changes/{change_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Change */
+        get: operations["get_change_v1_orgs__org_id__changes__change_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/meta": {
         parameters: {
             query?: never;
@@ -244,6 +380,87 @@ export interface components {
         AcceptIn: {
             /** Token */
             token: string;
+        };
+        /** AccountIn */
+        AccountIn: {
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "ai_agent" | "ci" | "bot";
+            /** Agent Model */
+            agent_model?: string | null;
+        };
+        /** AccountOut */
+        AccountOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Kind */
+            kind: string;
+            /** Agent Model */
+            agent_model: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Keys */
+            keys: components["schemas"]["KeyOut"][];
+        };
+        /**
+         * ChangeIn
+         * @description What was changed. Who changed it comes from the credentials, never from here.
+         */
+        ChangeIn: {
+            /** Repository */
+            repository: string;
+            /** Commit Sha */
+            commit_sha: string;
+            /** Pr Number */
+            pr_number?: number | null;
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /** Branch */
+            branch?: string | null;
+            /** Files Changed */
+            files_changed?: string[];
+        };
+        /** ChangeOut */
+        ChangeOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Repository */
+            repository: string;
+            /** Commit Sha */
+            commit_sha: string;
+            /** Pr Number */
+            pr_number: number | null;
+            /** Title */
+            title: string;
+            /** Branch */
+            branch: string | null;
+            /** Files Changed */
+            files_changed: string[];
+            /** @description The authenticated identity that submitted it */
+            producer: components["schemas"]["ProducerOut"];
+            /**
+             * Captured At
+             * Format: date-time
+             */
+            captured_at: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -276,6 +493,66 @@ export interface components {
             /** @default viewer */
             role: components["schemas"]["Role"];
         };
+        /** IssuedKeyOut */
+        IssuedKeyOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Prefix */
+            prefix: string;
+            /** Scopes */
+            scopes: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Expires At */
+            expires_at: string | null;
+            /** Last Used At */
+            last_used_at: string | null;
+            /**
+             * Secret
+             * @description The full API key. Shown once; store it now.
+             */
+            secret: string;
+        };
+        /** KeyIn */
+        KeyIn: {
+            /**
+             * Scopes
+             * @description Defaults to the usual scopes for the account's kind
+             */
+            scopes?: components["schemas"]["Permission"][] | null;
+            /**
+             * Expires In Days
+             * @default 90
+             */
+            expires_in_days: number | null;
+        };
+        /** KeyOut */
+        KeyOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Prefix */
+            prefix: string;
+            /** Scopes */
+            scopes: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Expires At */
+            expires_at: string | null;
+            /** Last Used At */
+            last_used_at: string | null;
+        };
         /** MeOut */
         MeOut: {
             /** Id */
@@ -286,6 +563,10 @@ export interface components {
             email: string;
             /** Name */
             name: string;
+            /** Producer Kind */
+            producer_kind: string;
+            /** Producer Identity */
+            producer_identity: string;
         };
         /** MemberOut */
         MemberOut: {
@@ -318,7 +599,8 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
-            role: components["schemas"]["Role"];
+            /** @description The caller's role; null for service accounts */
+            role: components["schemas"]["Role"] | null;
             /** Require Mfa */
             require_mfa: boolean;
             /**
@@ -337,6 +619,20 @@ export interface components {
          * @enum {string}
          */
         Permission: "org.read" | "org.update" | "org.delete" | "org.security" | "members.read" | "members.invite" | "members.update_role" | "members.remove" | "api_keys.read" | "api_keys.manage" | "repos.read" | "repos.manage" | "changes.read" | "changes.submit" | "runs.read" | "runs.cancel" | "bugs.read" | "bugs.confirm" | "reviews.approve" | "locks.create" | "locks.retire" | "graph.read" | "audit.read";
+        /**
+         * ProducerKind
+         * @description Who produced a change. Needed to enforce 'Riven never approves its own work'.
+         * @enum {string}
+         */
+        ProducerKind: "human" | "ai_agent" | "bot" | "unknown";
+        /** ProducerOut */
+        ProducerOut: {
+            kind: components["schemas"]["ProducerKind"];
+            /** Identity */
+            identity: string;
+            /** Agent Model */
+            agent_model: string | null;
+        };
         /** RepositoryOut */
         RepositoryOut: {
             /**
@@ -810,6 +1106,298 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RepositoryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_accounts_v1_orgs__org_id__service_accounts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_account_v1_orgs__org_id__service_accounts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disable_account_v1_orgs__org_id__service_accounts__account_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_key_v1_orgs__org_id__service_accounts__account_id__keys_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssuedKeyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rotate_key_v1_orgs__org_id__api_keys__key_id__rotate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssuedKeyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_key_v1_orgs__org_id__api_keys__key_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_changes_v1_orgs__org_id__changes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_change_v1_orgs__org_id__changes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_change_v1_orgs__org_id__changes__change_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                change_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeOut"];
                 };
             };
             /** @description Validation Error */

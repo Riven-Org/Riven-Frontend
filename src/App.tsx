@@ -1,9 +1,13 @@
+import type { ReactElement } from 'react'
+
 import { AppShell } from './AppShell'
 import { useAuth } from './auth/context'
 import { OrgProvider } from './org/OrgProvider'
 import { useOrgs } from './org/context'
 import { AcceptInvite } from './pages/AcceptInvite'
+import { ApiKeys } from './pages/ApiKeys'
 import { AuthCallback } from './pages/AuthCallback'
+import { Changes } from './pages/Changes'
 import { CreateOrg } from './pages/CreateOrg'
 import { Home } from './pages/Home'
 import { Members } from './pages/Members'
@@ -20,7 +24,12 @@ function Workspace() {
   if (loading) return <Spinner label="Loading your organizations…" />
   if (!current) return <CreateOrg first />
   if (path === '/orgs/new') return <CreateOrg />
-  return <AppShell>{path === '/members' ? <Members /> : <Home />}</AppShell>
+  const pages: Record<string, () => ReactElement> = {
+    '/members': () => <Members />,
+    '/changes': () => <Changes />,
+    '/api-keys': () => <ApiKeys />,
+  }
+  return <AppShell>{(pages[path] ?? (() => <Home />))()}</AppShell>
 }
 
 function App() {
