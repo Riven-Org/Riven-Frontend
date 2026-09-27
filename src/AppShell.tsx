@@ -13,6 +13,7 @@ const NAV: NavItem[] = [
   { to: '/changes', label: 'Changes', needs: 'changes.read' },
   { to: '/members', label: 'Members', needs: 'members.read' },
   { to: '/api-keys', label: 'API keys', needs: 'api_keys.read' },
+  { to: '/security', label: 'Security' },
 ]
 
 function initials(name: string): string {
