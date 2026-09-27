@@ -17,7 +17,7 @@ import { MfaRequired } from './pages/MfaRequired'
 import { Security } from './pages/Security'
 import { SignIn } from './pages/SignIn'
 import { usePath } from './router'
-import { Spinner } from './ui/Spinner'
+import { LoadingScreen } from './ui/FullScreen'
 import { ToastProvider } from './ui/toast'
 
 function useMfaBlocked(): boolean {
@@ -41,7 +41,7 @@ function Workspace() {
   const mfaBlocked = useMfaBlocked()
 
   if (path === '/invite') return <AcceptInvite />
-  if (loading) return <Spinner label="Loading your organizations…" />
+  if (loading) return <LoadingScreen label="Loading your workspace…" />
   if (!current) return <CreateOrg first />
   if (mfaBlocked && path !== '/security') return <MfaRequired />
   if (path === '/orgs/new') return <CreateOrg />
@@ -59,7 +59,7 @@ function App() {
   const { user, ready } = useAuth()
 
   if (path === '/auth/callback') return <AuthCallback />
-  if (!ready) return <Spinner label="Loading…" />
+  if (!ready) return <LoadingScreen label="Loading…" />
   if (!user) return <SignIn />
   return (
     <ToastProvider>

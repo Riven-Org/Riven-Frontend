@@ -1,34 +1,34 @@
 import { useAuth } from '../auth/context'
 import { useOrgs } from '../org/context'
-import { Logo } from '../ui/Logo'
+import { Alert } from '../ui/Alert'
+import { Button } from '../ui/Button'
+import { FullScreen } from '../ui/FullScreen'
+import { LogOut, ShieldCheck } from '../ui/icons'
 
 /** Shown when the current org requires 2FA and the user has not enrolled (S03.5.2). */
 export function MfaRequired() {
   const { startAction, signOut } = useAuth()
   const { current, orgs, select } = useOrgs()
-  const others = orgs.filter((o) => o.id !== current?.id && !o.require_mfa)
+  const other = orgs.find((o) => o.id !== current?.id && !o.require_mfa)
 
   return (
-    <section className="onboard rise">
-      <Logo size={40} />
-      <h1>Two-factor authentication required</h1>
-      <p className="muted">
-        {current?.name ?? 'This organization'} requires every member to sign in with a second
-        factor. Set up an authenticator app (Google Authenticator, 1Password, Authy…) to continue.
-      </p>
-      <div className="actions">
-        <button className="btn btn-primary" onClick={() => startAction('CONFIGURE_TOTP')}>
+    <FullScreen
+      title="Two-factor authentication required"
+      description={`${current?.name ?? 'This organization'} requires every member to sign in with a second factor.`}
+    >
+      <Alert tone="info" title="It takes about a minute">
+        Install an authenticator app such as Google Authenticator, 1Password or Authy, then scan the
+        code on the next screen.
+      </Alert>
+      <div className="row" style={{ flexWrap: 'wrap' }}>
+        <Button variant="primary" icon={ShieldCheck} onClick={() => startAction('CONFIGURE_TOTP')}>
           Set up authenticator app
-        </button>
-        {others.length > 0 && (
-          <button className="btn" onClick={() => select(others[0].id)}>
-            Switch to {others[0].name}
-          </button>
-        )}
-        <button className="btn" onClick={() => signOut()}>
+        </Button>
+        {other && <Button onClick={() => select(other.id)}>Switch to {other.name}</Button>}
+        <Button variant="ghost" icon={LogOut} onClick={() => signOut()}>
           Sign out
-        </button>
+        </Button>
       </div>
-    </section>
+    </FullScreen>
   )
 }

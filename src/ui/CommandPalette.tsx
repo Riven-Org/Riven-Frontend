@@ -5,7 +5,17 @@ import { useAuth } from '../auth/context'
 import { NAV } from '../nav'
 import { useOrgs, usePermissions } from '../org/context'
 import { navigate } from '../router'
-import { ArrowRight, Building2, LogOut, Monitor, Moon, Plus, Search, Sun } from './icons'
+import {
+  Building2,
+  CornerDownLeft,
+  ICON_STROKE,
+  LogOut,
+  Monitor,
+  Moon,
+  Plus,
+  Search,
+  Sun,
+} from './icons'
 import { useTheme } from './theme'
 
 type Command = {
@@ -13,11 +23,11 @@ type Command = {
   group: string
   label: string
   hint?: string
-  icon: ComponentType<{ size?: number }>
+  icon: ComponentType<{ size?: number; strokeWidth?: number }>
   run: () => void
 }
 
-/** ⌘K / Ctrl+K: jump to any page, switch org, change theme or sign out from the keyboard. */
+/** ⌘K / Ctrl+K: jump to any page, switch organization, change theme or sign out. */
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <AnimatePresence>{open && <PaletteBody key="palette" onClose={onClose} />}</AnimatePresence>
@@ -36,7 +46,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
     () => [
       ...NAV.filter((n) => !n.needs || can(n.needs)).map((n) => ({
         id: `go:${n.to}`,
-        group: 'Go to',
+        group: 'Pages',
         label: n.label,
         hint: n.hint,
         icon: n.icon,
@@ -46,36 +56,35 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
         .filter((o) => o.id !== current?.id)
         .map((o) => ({
           id: `org:${o.id}`,
-          group: 'Switch organization',
-          label: o.name,
-          hint: o.role ?? '',
+          group: 'Organizations',
+          label: `Switch to ${o.name}`,
           icon: Building2,
           run: () => select(o.id),
         })),
       {
         id: 'org:new',
-        group: 'Organization',
+        group: 'Organizations',
         label: 'Create organization',
         icon: Plus,
         run: () => navigate('/orgs/new'),
       },
       {
         id: 'theme:light',
-        group: 'Theme',
-        label: 'Light theme',
+        group: 'Preferences',
+        label: 'Use light theme',
         icon: Sun,
         run: () => setMode('light'),
       },
       {
         id: 'theme:dark',
-        group: 'Theme',
-        label: 'Dark theme',
+        group: 'Preferences',
+        label: 'Use dark theme',
         icon: Moon,
         run: () => setMode('dark'),
       },
       {
         id: 'theme:system',
-        group: 'Theme',
+        group: 'Preferences',
         label: 'Match system theme',
         icon: Monitor,
         run: () => setMode('system'),
@@ -119,74 +128,79 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   let lastGroup = ''
   return (
     <motion.div
-      className="palette-backdrop"
+      className="palette-overlay"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.12 }}
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
         className="palette"
         role="dialog"
-        aria-label="Command palette"
-        initial={{ opacity: 0, y: -16, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -10, scale: 0.98 }}
-        transition={{ type: 'spring', stiffness: 460, damping: 34 }}
+        aria-modal="true"
+        aria-label="Command menu"
+        initial={{ opacity: 0, scale: 0.98, y: -6 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.98 }}
+        transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}
         onKeyDown={onKey}
       >
-        <div className="palette-input">
-          <Search size={18} />
+        <div className="palette__input">
+          <Search size={16} strokeWidth={ICON_STROKE} />
           <input
             autoFocus
             value={query}
-            placeholder="Search pages, organizations and actions…"
+            placeholder="Type a command or search…"
             aria-label="Search commands"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="palette-list"
             onChange={(e) => {
               setQuery(e.target.value)
               setActive(0)
             }}
           />
-          <span className="kbd">esc</span>
+          <span className="kbd">Esc</span>
         </div>
-        <ul className="palette-list" role="listbox">
-          {shown.length === 0 && <li className="palette-group">No results</li>}
+        <ul className="palette__list" id="palette-list" role="listbox">
+          {shown.length === 0 && (
+            <li className="empty" style={{ padding: '28px 16px' }}>
+              <span className="empty__text">No commands match “{query}”.</span>
+            </li>
+          )}
           {shown.map((c, i) => {
             const header = c.group !== lastGroup
             lastGroup = c.group
             const Icon = c.icon
             return (
               <li key={c.id}>
-                {header && <div className="palette-group">{c.group}</div>}
+                {header && <div className="palette__group">{c.group}</div>}
                 <button
-                  className="palette-item"
+                  className="palette__item"
                   role="option"
                   aria-selected={i === active}
                   onMouseMove={() => setActive(i)}
                   onClick={() => run(c)}
                 >
-                  {i === active && (
-                    <motion.span
-                      layoutId="palette-highlight"
-                      className="palette-highlight"
-                      transition={{ type: 'spring', stiffness: 600, damping: 40 }}
-                    />
-                  )}
-                  <Icon size={17} />
-                  <span>{c.label}</span>
-                  {c.hint && <span className="hint">{c.hint}</span>}
-                  {i === active && <ArrowRight size={15} />}
+                  <Icon size={15} strokeWidth={ICON_STROKE} />
+                  {c.label}
+                  {c.hint && <span className="palette__hint">{c.hint}</span>}
                 </button>
               </li>
             )
           })}
         </ul>
-        <div className="palette-foot">
-          <span>
-            <span className="kbd">↑</span> <span className="kbd">↓</span> navigate
+        <div className="palette__footer">
+          <span className="row" style={{ gap: 4 }}>
+            <span className="kbd">↑</span>
+            <span className="kbd">↓</span> to move
           </span>
-          <span>
-            <span className="kbd">↵</span> open
+          <span className="row" style={{ gap: 4 }}>
+            <span className="kbd">
+              <CornerDownLeft size={11} />
+            </span>
+            to select
           </span>
         </div>
       </motion.div>

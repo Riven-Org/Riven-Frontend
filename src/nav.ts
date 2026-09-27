@@ -11,28 +11,48 @@ export type NavItem = {
   hint: string
 }
 
-export const NAV: NavItem[] = [
-  { to: '/', label: 'Overview', icon: LayoutDashboard, hint: 'Dashboard and activity' },
+export type NavGroup = { label: string; items: NavItem[] }
+
+/** Navigation, grouped. The sidebar, breadcrumbs and command palette all read from here. */
+export const NAV_GROUPS: NavGroup[] = [
   {
-    to: '/changes',
-    label: 'Changes',
-    icon: GitCommitHorizontal,
-    needs: 'changes.read',
-    hint: 'Captured changes and producers',
+    label: 'Workspace',
+    items: [
+      { to: '/', label: 'Overview', icon: LayoutDashboard, hint: 'Summary and activity' },
+      {
+        to: '/changes',
+        label: 'Changes',
+        icon: GitCommitHorizontal,
+        needs: 'changes.read',
+        hint: 'Captured changes and producers',
+      },
+    ],
   },
   {
-    to: '/members',
-    label: 'Members',
-    icon: Users,
-    needs: 'members.read',
-    hint: 'People, roles and invitations',
+    label: 'Organization',
+    items: [
+      {
+        to: '/members',
+        label: 'Members',
+        icon: Users,
+        needs: 'members.read',
+        hint: 'People, roles and invitations',
+      },
+      {
+        to: '/api-keys',
+        label: 'API keys',
+        icon: KeyRound,
+        needs: 'api_keys.read',
+        hint: 'Agents, CI and bots',
+      },
+    ],
   },
   {
-    to: '/api-keys',
-    label: 'API keys',
-    icon: KeyRound,
-    needs: 'api_keys.read',
-    hint: 'Agents, CI and bots',
+    label: 'Account',
+    items: [
+      { to: '/security', label: 'Security', icon: ShieldCheck, hint: 'Two-factor and sessions' },
+    ],
   },
-  { to: '/security', label: 'Security', icon: ShieldCheck, hint: 'Two-factor and sessions' },
 ]
+
+export const NAV: NavItem[] = NAV_GROUPS.flatMap((g) => g.items)

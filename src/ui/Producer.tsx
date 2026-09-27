@@ -1,16 +1,24 @@
 import type { ProducerKind } from '../api/types'
+import { Badge, type Tone } from './Badge'
 import { Bot, Cpu, User } from './icons'
 
-const LABELS: Record<ProducerKind, string> = {
-  human: 'Human',
-  ai_agent: 'AI agent',
-  bot: 'Bot',
-  unknown: 'Unknown',
+const KIND: Record<ProducerKind, { label: string; tone: Tone; icon: typeof User }> = {
+  human: { label: 'Human', tone: 'success', icon: User },
+  ai_agent: { label: 'AI agent', tone: 'accent', icon: Cpu },
+  bot: { label: 'Bot', tone: 'info', icon: Bot },
+  unknown: { label: 'Unknown', tone: 'neutral', icon: User },
 }
 
-const ICONS = { human: User, ai_agent: Cpu, bot: Bot, unknown: User }
+/** Who produced a change — always visible where a change appears. */
+export function ProducerKindBadge({ kind }: { kind: ProducerKind }) {
+  const k = KIND[kind]
+  return (
+    <Badge tone={k.tone} icon={k.icon}>
+      {k.label}
+    </Badge>
+  )
+}
 
-/** Who produced a change. Shown wherever a change appears (Riven never approves its own work). */
 export function Producer({
   kind,
   identity,
@@ -20,14 +28,12 @@ export function Producer({
   identity: string
   model?: string | null
 }) {
-  const Icon = ICONS[kind]
   return (
-    <span className={`producer producer-${kind}`} title={`Produced by ${identity}`}>
-      <span className="producer-kind">
-        <Icon size={12} strokeWidth={2.6} />
-        {LABELS[kind]}
+    <span className="cell-stack" title={`Produced by ${identity}`}>
+      <span className="row" style={{ gap: 6 }}>
+        <ProducerKindBadge kind={kind} />
       </span>
-      <span className="producer-id">
+      <span className="truncate">
         {identity}
         {model ? ` · ${model}` : ''}
       </span>
