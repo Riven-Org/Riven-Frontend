@@ -1,10 +1,27 @@
 import { AppShell } from './AppShell'
 import { useAuth } from './auth/context'
+import { OrgProvider } from './org/OrgProvider'
+import { useOrgs } from './org/context'
+import { AcceptInvite } from './pages/AcceptInvite'
 import { AuthCallback } from './pages/AuthCallback'
+import { CreateOrg } from './pages/CreateOrg'
 import { Home } from './pages/Home'
+import { Members } from './pages/Members'
 import { SignIn } from './pages/SignIn'
 import { usePath } from './router'
 import { Spinner } from './ui/Spinner'
+import { ToastProvider } from './ui/toast'
+
+function Workspace() {
+  const path = usePath()
+  const { current, loading } = useOrgs()
+
+  if (path === '/invite') return <AcceptInvite />
+  if (loading) return <Spinner label="Loading your organizations…" />
+  if (!current) return <CreateOrg first />
+  if (path === '/orgs/new') return <CreateOrg />
+  return <AppShell>{path === '/members' ? <Members /> : <Home />}</AppShell>
+}
 
 function App() {
   const path = usePath()
@@ -14,9 +31,11 @@ function App() {
   if (!ready) return <Spinner label="Loading…" />
   if (!user) return <SignIn />
   return (
-    <AppShell>
-      <Home />
-    </AppShell>
+    <ToastProvider>
+      <OrgProvider>
+        <Workspace />
+      </OrgProvider>
+    </ToastProvider>
   )
 }
 

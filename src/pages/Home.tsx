@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react'
 
 import { api } from '../api/client'
 import type { Me } from '../api/types'
+import { useOrgs } from '../org/context'
+import { navigate } from '../router'
 
 export function Home() {
+  const { current } = useOrgs()
   const [me, setMe] = useState<Me | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -15,7 +18,7 @@ export function Home() {
     <section className="page">
       <header className="page-head rise">
         <h1>{me ? `Welcome, ${me.name.split(' ')[0] || me.email}` : 'Welcome'}</h1>
-        <p className="muted">Your verification workspace.</p>
+        <p className="muted">{current ? `${current.name} · verification workspace` : ''}</p>
       </header>
 
       <div className="grid">
@@ -42,6 +45,26 @@ export function Home() {
             </div>
           )}
         </article>
+
+        {current && (
+          <article className="card rise" style={{ animationDelay: '140ms' }}>
+            <h2 className="card-title">Your access in {current.name}</h2>
+            <p>
+              <span className={`role role-${current.role}`}>{current.role}</span>
+            </p>
+            <p className="muted">
+              {current.permissions.length} permissions ·{' '}
+              <button className="link" onClick={() => navigate('/members')}>
+                See members
+              </button>
+            </p>
+            <ul className="perm-list">
+              {current.permissions.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </article>
+        )}
       </div>
     </section>
   )
