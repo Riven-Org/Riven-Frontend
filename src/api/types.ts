@@ -17,3 +17,6 @@ export type ApiKey = Schemas['KeyOut']
 export type IssuedKey = Schemas['IssuedKeyOut']
 export type Change = Schemas['ChangeOut']
 export type ProducerKind = Schemas['ProducerKind']
+
+export type Security = Schemas['SecurityOut']
+export type Session = Schemas['SessionOut']

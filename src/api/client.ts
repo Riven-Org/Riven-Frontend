@@ -1,5 +1,8 @@
 import { userManager } from '../auth/userManager'
 
+/** Fired when an org requires two-factor authentication the user has not set up. */
+export const MFA_REQUIRED_EVENT = 'riven:mfa-required'
+
 /** An HTTP error from the API; `code` is the `detail` string when the API sends one. */
 export class ApiError extends Error {
   readonly status: number
@@ -37,6 +40,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
     const detail = typeof body.detail === 'string' ? body.detail : response.statusText
+    if (detail === 'mfa_required') window.dispatchEvent(new Event(MFA_REQUIRED_EVENT))
     throw new ApiError(response.status, detail)
   }
   return (response.status === 204 ? undefined : await response.json()) as T

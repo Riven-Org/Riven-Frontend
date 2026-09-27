@@ -43,6 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           extraQueryParams,
         })
       },
+      startAction: async (action) => {
+        await userManager.signinRedirect({
+          state: { returnTo: window.location.pathname },
+          extraQueryParams: { kc_action: action },
+        })
+      },
       signOut: async () => {
         const idToken = (await userManager.getUser())?.id_token
         await userManager.removeUser()

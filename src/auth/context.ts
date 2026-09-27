@@ -8,11 +8,15 @@ export type SignInOptions = {
   register?: boolean
 }
 
+export type KeycloakAction = 'CONFIGURE_TOTP' | 'CONFIGURE_RECOVERY_AUTHN_CODES'
+
 export type AuthState = {
   user: User | null
   ready: boolean
   signIn: (options?: SignInOptions) => Promise<void>
   signOut: () => Promise<void>
+  /** Run a Keycloak required action (e.g. CONFIGURE_TOTP), then come back here. */
+  startAction: (action: KeycloakAction) => Promise<void>
   accessToken: () => Promise<string | null>
 }
 
