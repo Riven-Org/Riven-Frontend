@@ -1,9 +1,14 @@
+import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 
 import { api } from '../api/client'
 import type { Change } from '../api/types'
 import { useOrgs } from '../org/context'
 import { Producer } from '../ui/Producer'
+import { GitCommitHorizontal } from '../ui/icons'
+import { Stagger } from '../ui/motion'
+import { fadeUp, listItem } from '../ui/variants'
+import { PageHeader } from '../ui/PageHeader'
 
 export function Changes() {
   const { current } = useOrgs()
@@ -19,12 +24,13 @@ export function Changes() {
   }, [orgId])
 
   return (
-    <section className="page">
-      <header className="page-head rise">
-        <h1>Changes</h1>
-        <p className="muted">Every captured change and the authenticated identity that produced it.</p>
-      </header>
-      <div className="card rise" style={{ animationDelay: '60ms' }}>
+    <Stagger className="page">
+      <PageHeader
+        icon={GitCommitHorizontal}
+        title="Changes"
+        subtitle="Every captured change and the authenticated identity that produced it."
+      />
+      <motion.div className="card" variants={fadeUp}>
         {error ? (
           <p className="error">{error}</p>
         ) : !changes ? (
@@ -39,25 +45,36 @@ export function Changes() {
           </p>
         ) : (
           <ul className="rows">
-            {changes.map((c) => (
-              <li key={c.id} className="row change-row">
-                <span className="row-main">
-                  <strong>{c.title || c.commit_sha}</strong>
-                  <span className="muted small">
-                    <code>{c.repository}</code> · <code>{c.commit_sha.slice(0, 8)}</code>
-                    {c.branch ? ` · ${c.branch}` : ''} · {new Date(c.captured_at).toLocaleString()}
+            <AnimatePresence initial={false}>
+              {changes.map((c) => (
+                <motion.li
+                  key={c.id}
+                  className="row change-row"
+                  variants={listItem}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                  layout
+                >
+                  <span className="row-main">
+                    <strong>{c.title || c.commit_sha}</strong>
+                    <span className="muted small">
+                      <code>{c.repository}</code> · <code>{c.commit_sha.slice(0, 8)}</code>
+                      {c.branch ? ` · ${c.branch}` : ''} ·{' '}
+                      {new Date(c.captured_at).toLocaleString()}
+                    </span>
                   </span>
-                </span>
-                <Producer
-                  kind={c.producer.kind}
-                  identity={c.producer.identity}
-                  model={c.producer.agent_model}
-                />
-              </li>
-            ))}
+                  <Producer
+                    kind={c.producer.kind}
+                    identity={c.producer.identity}
+                    model={c.producer.agent_model}
+                  />
+                </motion.li>
+              ))}
+            </AnimatePresence>
           </ul>
         )}
-      </div>
-    </section>
+      </motion.div>
+    </Stagger>
   )
 }

@@ -1,61 +1,134 @@
+import { AnimatePresence, motion } from 'motion/react'
+import { useEffect, useState } from 'react'
+
 import { useAuth } from '../auth/context'
+import { Fingerprint, GitHubIcon, GoogleIcon, Lock, Mail, ShieldCheck, Sparkles } from '../ui/icons'
 import { Logo } from '../ui/Logo'
+import { ease, fadeUp, stagger } from '../ui/variants'
+
+const WORDS = ['every change.', 'every AI agent.', 'every bug fixed.', 'every release.']
 
 const PILLARS = [
-  ['Verify', 'Every change runs in an isolated sandbox and is judged by an independent verifier.'],
-  ['Remember', 'Confirmed bugs become memory, and every fix becomes a regression lock.'],
-  ['Learn', 'A causal graph links requirement → change → bug → fix → test.'],
+  {
+    icon: ShieldCheck,
+    title: 'Verify',
+    text: 'Every change runs in an isolated sandbox and is judged by an independent verifier.',
+  },
+  {
+    icon: Fingerprint,
+    title: 'Remember',
+    text: 'Confirmed bugs become memory, and every fix becomes a regression lock.',
+  },
+  {
+    icon: Sparkles,
+    title: 'Learn',
+    text: 'A causal graph links requirement → change → bug → fix → test.',
+  },
 ]
+
+function RotatingWord() {
+  const [index, setIndex] = useState(0)
+  useEffect(() => {
+    const id = window.setInterval(() => setIndex((i) => (i + 1) % WORDS.length), 2600)
+    return () => window.clearInterval(id)
+  }, [])
+  return (
+    <span style={{ display: 'inline-block', position: 'relative' }}>
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={WORDS[index]}
+          className="hero-word"
+          initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, y: -24, filter: 'blur(8px)' }}
+          transition={{ duration: 0.5, ease }}
+        >
+          {WORDS[index]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  )
+}
 
 export function SignIn() {
   const { signIn } = useAuth()
 
   return (
     <div className="signin">
-      <section className="signin-hero" aria-hidden="true">
+      <section className="signin-hero">
         <div className="orb orb-a" />
         <div className="orb orb-b" />
         <div className="orb orb-c" />
-        <div className="signin-hero-copy">
-          <Logo size={44} />
-          <h1 className="hero-title">
+        <motion.div className="signin-hero-copy" variants={stagger} initial="hidden" animate="show">
+          <motion.span className="eyebrow" variants={fadeUp}>
+            <Sparkles size={14} /> Independent verification for AI-built software
+          </motion.span>
+          <motion.h1 className="hero-title" variants={fadeUp}>
             Verify. Remember.
             <br />
-            Learn from every change.
-          </h1>
+            Learn from <RotatingWord />
+          </motion.h1>
           <ul className="pillars">
-            {PILLARS.map(([title, text], i) => (
-              <li key={title} className="rise" style={{ animationDelay: `${200 + i * 120}ms` }}>
-                <strong>{title}</strong>
-                <span>{text}</span>
-              </li>
+            {PILLARS.map(({ icon: Icon, title, text }) => (
+              <motion.li key={title} variants={fadeUp} whileHover={{ x: 6 }}>
+                <span className="pillar-icon">
+                  <Icon size={18} />
+                </span>
+                <span>
+                  <strong>{title}</strong>
+                  <span>{text}</span>
+                </span>
+              </motion.li>
             ))}
           </ul>
-        </div>
+        </motion.div>
       </section>
 
       <main className="signin-panel">
-        <div className="signin-card rise">
+        <motion.div
+          className="signin-card"
+          initial={{ opacity: 0, y: 30, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.7, ease, delay: 0.15 }}
+        >
           <div className="signin-brand">
-            <Logo />
+            <Logo size={30} />
             <span>Riven</span>
           </div>
-          <h2>Sign in</h2>
-          <p className="muted">Independent verification for AI-built software.</p>
+          <div>
+            <h2>Welcome back</h2>
+            <p className="muted" style={{ marginTop: 6 }}>
+              Sign in to your verification workspace.
+            </p>
+          </div>
 
           <div className="stack">
-            <button className="btn btn-social" onClick={() => signIn({ provider: 'github' })}>
+            <motion.button
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn btn-social"
+              onClick={() => signIn({ provider: 'github' })}
+            >
               <GitHubIcon /> Continue with GitHub
-            </button>
-            <button className="btn btn-social" onClick={() => signIn({ provider: 'google' })}>
+            </motion.button>
+            <motion.button
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn btn-social"
+              onClick={() => signIn({ provider: 'google' })}
+            >
               <GoogleIcon /> Continue with Google
-            </button>
+            </motion.button>
             <div className="divider">
               <span>or</span>
             </div>
-            <button className="btn btn-primary" onClick={() => signIn()}>
-              Continue with email
-            </button>
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              className="btn btn-primary"
+              onClick={() => signIn()}
+            >
+              <Mail size={17} /> Continue with email
+            </motion.button>
           </div>
 
           <p className="fine">
@@ -64,27 +137,11 @@ export function SignIn() {
               Create an account
             </button>
           </p>
-        </div>
+          <div className="signin-foot">
+            <Lock size={13} /> Secured with PKCE, verified email and optional 2FA
+          </div>
+        </motion.div>
       </main>
     </div>
-  )
-}
-
-function GitHubIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
-      <path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.23 1.87.87 2.33.67.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
-    </svg>
-  )
-}
-
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
-      <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
-      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />
-      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3a12 12 0 0 1-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
-    </svg>
   )
 }
