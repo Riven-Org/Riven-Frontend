@@ -14,7 +14,7 @@ Domain terms: **change** (commit/PR), **producer** (human / ai_agent / bot), **v
 
 ## Current state
 
-Sign-in exists (S03.1): `src/auth/` wraps `oidc-client-ts` (authorization code + PKCE against the backend's Keycloak realm, tokens in localStorage, silent refresh). Call the API only through `api()` in `src/api/client.ts`, which attaches the token and retries once on 401. Response types come from `src/api/schema.d.ts`, generated with `npm run api:types` while the backend runs; alias them in `src/api/types.ts`. `src/router.ts` is a minimal History-API helper (`usePath`, `navigate`). Data layer (TanStack Query), design system and tests are introduced by their tickets (below) — do not add them ad hoc in unrelated tickets.
+Sign-in exists (S03.1): `src/auth/` wraps `oidc-client-ts` (authorization code + PKCE against the backend's Keycloak realm, tokens in localStorage, silent refresh). Call the API only through `api()` in `src/api/client.ts`, which attaches the token and retries once on 401. Response types come from `src/api/schema.d.ts`, generated with `npm run api:types` while the backend runs; alias them in `src/api/types.ts`. `src/router.ts` is a minimal History-API helper (`usePath`, `navigate`). Orgs (S03.2/S03.3): `OrgProvider` loads `/v1/orgs` and remembers the current org; gate any mutation control with `usePermissions().can('<permission>')` (permissions come from the org response — never hard-code role checks). Feedback via `useToast()`. Data layer (TanStack Query), design system and tests are introduced by their tickets (below) — do not add them ad hoc in unrelated tickets.
 
 ## Commands
 
