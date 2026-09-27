@@ -14,7 +14,7 @@ Domain terms: **change** (commit/PR), **producer** (human / ai_agent / bot), **v
 
 ## Current state
 
-Only a start page exists (`src/App.tsx`) that shows whether the backend is reachable. Router, data layer, design system and tests are introduced by their tickets (below) — do not add them ad hoc in unrelated tickets.
+Sign-in exists (S03.1): `src/auth/` wraps `oidc-client-ts` (authorization code + PKCE against the backend's Keycloak realm, tokens in localStorage, silent refresh). Call the API only through `api()` in `src/api/client.ts`, which attaches the token and retries once on 401. Response types come from `src/api/schema.d.ts`, generated with `npm run api:types` while the backend runs; alias them in `src/api/types.ts`. `src/router.ts` is a minimal History-API helper (`usePath`, `navigate`). Data layer (TanStack Query), design system and tests are introduced by their tickets (below) — do not add them ad hoc in unrelated tickets.
 
 ## Commands
 
@@ -23,6 +23,7 @@ npm install
 npm run dev        # :5173; /api/* is proxied to the backend on :8000 (vite.config.ts)
 npm run lint       # oxlint
 npm run build      # tsc -b (type check) + vite build — CI runs lint + build
+npm run api:types  # regenerate src/api/schema.d.ts from the backend's /openapi.json (backend on :8000)
 ```
 
 Run the backend (`make api` in Riven-Backend) to see live data. No test runner exists yet; the first ticket that needs component tests adds Vitest + Testing Library, and S21.2 adds Playwright for end-to-end tests. Once added, document the single-test command here.
