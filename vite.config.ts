@@ -6,7 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': {
+      // Trailing slash: '/api' alone would also swallow page routes such as /api-keys.
+      '/api/': {
         target: 'http://localhost:8000',
         rewrite: (path) => path.replace(/^\/api/, ''),
       },

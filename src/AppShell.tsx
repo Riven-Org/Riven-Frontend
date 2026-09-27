@@ -10,7 +10,9 @@ type NavItem = { to: string; label: string; needs?: Permission }
 
 const NAV: NavItem[] = [
   { to: '/', label: 'Overview' },
+  { to: '/changes', label: 'Changes', needs: 'changes.read' },
   { to: '/members', label: 'Members', needs: 'members.read' },
+  { to: '/api-keys', label: 'API keys', needs: 'api_keys.read' },
 ]
 
 function initials(name: string): string {
