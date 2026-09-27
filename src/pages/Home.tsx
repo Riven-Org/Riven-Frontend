@@ -1,264 +1,351 @@
-import { motion } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { api } from '../api/client'
-import type { Change, Me, Member, Security, ServiceAccount } from '../api/types'
+import type { Change, Invitation, Member, Security, ServiceAccount } from '../api/types'
 import { useOrgs, usePermissions } from '../org/context'
 import { navigate } from '../router'
+import { RoleBadge } from '../ui/Badge'
+import { Button } from '../ui/Button'
+import { DataTable } from '../ui/DataTable'
+import { relativeTime } from '../ui/format'
 import {
-  Activity,
   ArrowRight,
-  Fingerprint,
+  CircleCheck,
   GitCommitHorizontal,
+  ICON_STROKE,
   KeyRound,
+  Mail,
   ShieldAlert,
   ShieldCheck,
-  Sparkles,
+  UserPlus,
   Users,
 } from '../ui/icons'
-import { AnimatedNumber, Stagger } from '../ui/motion'
-import { fadeUp } from '../ui/variants'
+import { Page, Section } from '../ui/Page'
 import { Producer } from '../ui/Producer'
+import { Skeleton } from '../ui/Skeleton'
 
-type Stats = {
-  members: number | null
+type Data = {
   changes: Change[] | null
+  members: Member[] | null
+  invitations: Invitation[] | null
   keys: number | null
   security: Security | null
 }
 
-function greeting(): string {
-  const h = new Date().getHours()
-  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
-}
+const EMPTY: Data = { changes: null, members: null, invitations: null, keys: null, security: null }
 
-function ago(iso: string): string {
-  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes}m ago`
-  if (minutes < 60 * 24) return `${Math.round(minutes / 60)}h ago`
-  return `${Math.round(minutes / 1440)}d ago`
+function Metric({
+  label,
+  value,
+  foot,
+  icon: Icon,
+  onClick,
+}: {
+  label: string
+  value: string | number | null
+  foot: string
+  icon: typeof Users
+  onClick: () => void
+}) {
+  return (
+    <button className="metric" onClick={onClick}>
+      <span className="metric__label">
+        <Icon size={14} strokeWidth={ICON_STROKE} />
+        {label}
+      </span>
+      <span className="metric__value">
+        {value === null ? <Skeleton width={48} height={24} /> : value}
+      </span>
+      <span className="metric__foot">{foot}</span>
+    </button>
+  )
 }
 
 export function Home() {
   const { current } = useOrgs()
   const { can } = usePermissions()
-  const [me, setMe] = useState<Me | null>(null)
-  const [stats, setStats] = useState<Stats>({
-    members: null,
-    changes: null,
-    keys: null,
-    security: null,
-  })
+  const [data, setData] = useState<Data>(EMPTY)
+  const [changesError, setChangesError] = useState<string | null>(null)
+  const [showAll, setShowAll] = useState(false)
   const orgId = current?.id
 
+  const loadChanges = useCallback(() => {
+    if (!orgId || !can('changes.read')) return
+    api<Change[]>(`/v1/orgs/${orgId}/changes`).then(
+      (changes) => {
+        setChangesError(null)
+        setData((d) => ({ ...d, changes }))
+      },
+      (err: Error) => setChangesError(err.message),
+    )
+  }, [orgId, can])
+
   useEffect(() => {
-    api<Me>('/v1/me').then(setMe, () => undefined)
     api<Security>('/v1/me/security').then(
-      (security) => setStats((s) => ({ ...s, security })),
+      (security) => setData((d) => ({ ...d, security })),
       () => undefined,
     )
   }, [])
 
   useEffect(() => {
     if (!orgId) return
+    loadChanges()
     if (can('members.read'))
       api<Member[]>(`/v1/orgs/${orgId}/members`).then(
-        (m) => setStats((s) => ({ ...s, members: m.length })),
+        (members) => setData((d) => ({ ...d, members })),
         () => undefined,
       )
-    if (can('changes.read'))
-      api<Change[]>(`/v1/orgs/${orgId}/changes`).then(
-        (changes) => setStats((s) => ({ ...s, changes })),
+    if (can('members.invite'))
+      api<Invitation[]>(`/v1/orgs/${orgId}/invitations`).then(
+        (invitations) => setData((d) => ({ ...d, invitations })),
         () => undefined,
       )
     if (can('api_keys.read'))
       api<ServiceAccount[]>(`/v1/orgs/${orgId}/service-accounts`).then(
-        (a) => setStats((s) => ({ ...s, keys: a.reduce((n, x) => n + x.keys.length, 0) })),
+        (a) => setData((d) => ({ ...d, keys: a.reduce((n, x) => n + x.keys.length, 0) })),
         () => undefined,
       )
-  }, [orgId, can])
+  }, [orgId, can, loadChanges])
 
-  const first = me?.name.split(' ')[0] || me?.email || ''
-  const agentChanges = stats.changes?.filter((c) => c.producer.kind === 'ai_agent').length ?? null
-  const mfa = stats.security?.mfa_enrolled
+  if (!current) return null
+  const agentChanges = data.changes?.filter((c) => c.producer.kind === 'ai_agent').length
+  const mfa = data.security?.mfa_enrolled
 
-  const tiles = [
-    {
-      label: 'Members',
-      icon: Users,
-      value: stats.members,
-      foot: 'People in this organization',
-      to: '/members',
-      show: can('members.read'),
-    },
-    {
-      label: 'Changes captured',
-      icon: GitCommitHorizontal,
-      value: stats.changes?.length ?? null,
-      foot: agentChanges === null ? '…' : `${agentChanges} by AI agents`,
-      to: '/changes',
-      show: can('changes.read'),
-    },
-    {
-      label: 'Active API keys',
+  const attention: {
+    tone: 'warning' | 'neutral'
+    icon: typeof Users
+    title: string
+    text: string
+    action: string
+    to: string
+  }[] = []
+  if (mfa === false)
+    attention.push({
+      tone: 'warning',
+      icon: ShieldAlert,
+      title: 'Turn on two-factor authentication',
+      text: 'Your account signs in with a password only.',
+      action: 'Set up',
+      to: '/security',
+    })
+  if (can('org.security') && !current.require_mfa)
+    attention.push({
+      tone: 'neutral',
+      icon: ShieldCheck,
+      title: 'Require two-factor for everyone',
+      text: `Members of ${current.name} can sign in without a second factor.`,
+      action: 'Review',
+      to: '/security',
+    })
+  if (can('api_keys.manage') && data.keys === 0)
+    attention.push({
+      tone: 'neutral',
       icon: KeyRound,
-      value: stats.keys,
-      foot: 'For agents, CI and bots',
+      title: 'Connect your first agent',
+      text: 'Give an AI agent or CI system an API key so its changes are verified.',
+      action: 'Create key',
       to: '/api-keys',
-      show: can('api_keys.read'),
-    },
-  ].filter((t) => t.show)
+    })
+  if (data.invitations && data.invitations.length > 0)
+    attention.push({
+      tone: 'neutral',
+      icon: Mail,
+      title: `${data.invitations.length} pending invitation${data.invitations.length === 1 ? '' : 's'}`,
+      text: 'Waiting for people to accept.',
+      action: 'View',
+      to: '/members',
+    })
 
   return (
-    <Stagger className="page">
-      <motion.section className="hero" variants={fadeUp}>
-        <span className="pill" style={{ background: 'rgba(255,255,255,.16)', color: '#fff' }}>
-          <Sparkles size={13} /> {current?.name} · {current?.role}
-        </span>
-        <h1 style={{ marginTop: 14 }}>
-          {greeting()}
-          {first ? `, ${first}` : ''} 👋
-        </h1>
-        <p>
-          Riven independently verifies every change, remembers every confirmed bug and never lets a
-          producer approve its own work.
-        </p>
-        <div className="actions">
-          {can('changes.read') && (
-            <button className="btn btn-light" onClick={() => navigate('/changes')}>
-              Review changes <ArrowRight size={16} />
-            </button>
+    <Page
+      title="Overview"
+      description={`What is happening in ${current.name}.`}
+      actions={
+        <>
+          {can('members.invite') && (
+            <Button icon={UserPlus} onClick={() => navigate('/members?invite=1')}>
+              Invite
+            </Button>
           )}
           {can('api_keys.manage') && (
-            <button className="btn" onClick={() => navigate('/api-keys')}>
-              <KeyRound size={16} /> Connect an agent
-            </button>
+            <Button variant="primary" icon={KeyRound} onClick={() => navigate('/api-keys')}>
+              Connect an agent
+            </Button>
           )}
-        </div>
-      </motion.section>
-
-      <div className="stats">
-        {tiles.map((t) => {
-          const Icon = t.icon
-          return (
-            <motion.button
-              key={t.label}
-              className="card card-glow stat"
-              variants={fadeUp}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate(t.to)}
-            >
-              <span className="stat-top">
-                {t.label}
-                <span className="stat-icon">
-                  <Icon size={17} />
-                </span>
-              </span>
-              <span className="stat-value">
-                <AnimatedNumber value={t.value} />
-              </span>
-              <span className="stat-foot">{t.foot}</span>
-            </motion.button>
-          )
-        })}
-        <motion.button
-          className="card card-glow stat"
-          variants={fadeUp}
-          whileTap={{ scale: 0.98 }}
+        </>
+      }
+    >
+      <div className="metrics">
+        {can('changes.read') && (
+          <Metric
+            label="Changes"
+            icon={GitCommitHorizontal}
+            value={data.changes?.length ?? null}
+            foot={agentChanges === undefined ? 'Loading…' : `${agentChanges} from AI agents`}
+            onClick={() => navigate('/changes')}
+          />
+        )}
+        {can('members.read') && (
+          <Metric
+            label="Members"
+            icon={Users}
+            value={data.members?.length ?? null}
+            foot={
+              data.invitations?.length
+                ? `${data.invitations.length} invited`
+                : 'In this organization'
+            }
+            onClick={() => navigate('/members')}
+          />
+        )}
+        {can('api_keys.read') && (
+          <Metric
+            label="Active API keys"
+            icon={KeyRound}
+            value={data.keys}
+            foot="Agents, CI and bots"
+            onClick={() => navigate('/api-keys')}
+          />
+        )}
+        <Metric
+          label="Two-factor"
+          icon={mfa ? ShieldCheck : ShieldAlert}
+          value={mfa === undefined ? null : mfa ? 'On' : 'Off'}
+          foot={current.require_mfa ? 'Required by organization' : 'Optional in this organization'}
           onClick={() => navigate('/security')}
+        />
+      </div>
+
+      <div className="overview-grid">
+        <Section
+          title="Recent changes"
+          description="The latest captured changes and who produced them."
+          actions={
+            can('changes.read') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                trailingIcon={ArrowRight}
+                onClick={() => navigate('/changes')}
+              >
+                View all
+              </Button>
+            )
+          }
         >
-          <span className="stat-top">
-            Two-factor
-            <span className="stat-icon">
-              {mfa ? <ShieldCheck size={17} /> : <ShieldAlert size={17} />}
-            </span>
-          </span>
-          <span className="stat-value" style={{ fontSize: 24 }}>
-            {mfa === undefined ? <span className="num-skeleton" /> : mfa ? 'Enabled' : 'Not set up'}
-          </span>
-          <span className="stat-foot">
-            {current?.require_mfa ? 'Required by your organization' : 'Recommended for everyone'}
-          </span>
-        </motion.button>
-      </div>
-
-      <div className="two-col">
-        <motion.article className="card" variants={fadeUp}>
-          <h2 className="card-title">
-            <Activity size={15} /> Recent activity
-          </h2>
-          {!can('changes.read') ? (
-            <p className="muted">You can't see changes in this organization.</p>
-          ) : stats.changes === null ? (
-            <div className="skeleton-lines">
-              <span />
-              <span />
-              <span />
-            </div>
-          ) : stats.changes.length === 0 ? (
-            <div className="empty">
-              <span className="empty-icon">
-                <GitCommitHorizontal size={24} />
-              </span>
-              <strong>No changes yet</strong>
-              <span className="muted small">Agents and CI submit changes with an API key.</span>
-            </div>
-          ) : (
-            <ul className="activity">
-              {stats.changes.slice(0, 6).map((c, i) => (
-                <motion.li
-                  key={c.id}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.25 + i * 0.07 }}
-                >
-                  <span className="row-main">
-                    <strong>{c.title || c.commit_sha}</strong>
-                    <span className="muted small">
-                      <code>{c.repository}</code> · {ago(c.captured_at)}
+          {can('changes.read') ? (
+            <DataTable
+              label="recent changes"
+              rows={data.changes?.slice(0, 6) ?? null}
+              rowKey={(c) => c.id}
+              error={changesError}
+              onRetry={loadChanges}
+              onRowClick={() => navigate('/changes')}
+              empty={{
+                icon: GitCommitHorizontal,
+                title: 'No changes yet',
+                text: 'Changes appear here as soon as an agent, CI system or teammate submits one.',
+                action: can('api_keys.manage') && (
+                  <Button variant="primary" icon={KeyRound} onClick={() => navigate('/api-keys')}>
+                    Connect an agent
+                  </Button>
+                ),
+              }}
+              columns={[
+                {
+                  key: 'change',
+                  header: 'Change',
+                  main: true,
+                  render: (c) => (
+                    <span className="cell-stack">
+                      <strong className="truncate">{c.title || c.commit_sha.slice(0, 8)}</strong>
+                      <span className="mono truncate">{c.repository}</span>
                     </span>
-                  </span>
-                  <Producer kind={c.producer.kind} identity={c.producer.identity} />
-                </motion.li>
-              ))}
-            </ul>
-          )}
-        </motion.article>
-
-        <motion.article className="card" variants={fadeUp}>
-          <h2 className="card-title">
-            <Fingerprint size={15} /> Your identity
-          </h2>
-          {me ? (
-            <dl className="facts">
-              <dt>Name</dt>
-              <dd>{me.name || '—'}</dd>
-              <dt>Email</dt>
-              <dd>{me.email}</dd>
-              <dt>Role</dt>
-              <dd>
-                <span className={`role role-${current?.role}`}>{current?.role}</span>
-              </dd>
-              <dt>Access</dt>
-              <dd>{current?.permissions.length} permissions</dd>
-            </dl>
+                  ),
+                },
+                {
+                  key: 'producer',
+                  header: 'Producer',
+                  render: (c) => <Producer kind={c.producer.kind} identity={c.producer.identity} />,
+                },
+                {
+                  key: 'when',
+                  header: 'Captured',
+                  align: 'right',
+                  shrink: true,
+                  render: (c) => (
+                    <span className="t-sm t-muted">{relativeTime(c.captured_at)}</span>
+                  ),
+                },
+              ]}
+            />
           ) : (
-            <div className="skeleton-lines">
-              <span />
-              <span />
-              <span />
+            <p className="t-sm t-muted">Your role can't see changes in this organization.</p>
+          )}
+        </Section>
+
+        <aside>
+          <div className="aside-block">
+            <h2>Needs attention</h2>
+            {attention.length === 0 ? (
+              <ul className="attention">
+                <li>
+                  <span className="attention__icon attention__icon--success">
+                    <CircleCheck size={15} strokeWidth={ICON_STROKE} />
+                  </span>
+                  <span className="attention__text">
+                    <strong>All set</strong>
+                    <span>Nothing needs your attention right now.</span>
+                  </span>
+                </li>
+              </ul>
+            ) : (
+              <ul className="attention">
+                {attention.map((a) => {
+                  const Icon = a.icon
+                  return (
+                    <li key={a.title}>
+                      <span
+                        className={`attention__icon ${a.tone === 'warning' ? 'attention__icon--warning' : ''}`}
+                      >
+                        <Icon size={15} strokeWidth={ICON_STROKE} />
+                      </span>
+                      <span className="attention__text">
+                        <strong>{a.title}</strong>
+                        <span>{a.text}</span>
+                      </span>
+                      <Button size="sm" onClick={() => navigate(a.to)}>
+                        {a.action}
+                      </Button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+          <div className="aside-block">
+            <h2>Your access</h2>
+            <div className="row">
+              <RoleBadge role={current.role} />
+              <span className="t-sm t-muted">{current.permissions.length} permissions</span>
             </div>
-          )}
-          {current && (
-            <ul className="perm-list">
-              {current.permissions.map((p) => (
-                <li key={p}>{p}</li>
+            <div className="permission-cloud">
+              {(showAll ? current.permissions : current.permissions.slice(0, 6)).map((p) => (
+                <code key={p} className="code-inline">
+                  {p}
+                </code>
               ))}
-            </ul>
-          )}
-        </motion.article>
+            </div>
+            {current.permissions.length > 6 && (
+              <div>
+                <Button variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
+                  {showAll ? 'Show fewer' : `Show all ${current.permissions.length}`}
+                </Button>
+              </div>
+            )}
+          </div>
+        </aside>
       </div>
-    </Stagger>
+    </Page>
   )
 }

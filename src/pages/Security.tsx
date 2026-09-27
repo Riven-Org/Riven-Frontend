@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useState } from 'react'
 
 import { api, ApiError } from '../api/client'
@@ -6,19 +5,17 @@ import type { Org, Security as SecurityState, Session } from '../api/types'
 import { useAuth } from '../auth/context'
 import { oidcConfig } from '../config'
 import { useOrgs, usePermissions } from '../org/context'
+import { Alert } from '../ui/Alert'
+import { Badge } from '../ui/Badge'
+import { Button } from '../ui/Button'
+import { ConfirmDialog } from '../ui/ConfirmDialog'
+import { DataTable } from '../ui/DataTable'
+import { Switch } from '../ui/Field'
+import { dateTime, relativeTime } from '../ui/format'
+import { ExternalLink, ICON_STROKE, Laptop, LogOut, ShieldAlert, ShieldCheck } from '../ui/icons'
+import { Page, Section } from '../ui/Page'
+import { Skeleton } from '../ui/Skeleton'
 import { useToast } from '../ui/toast'
-import { ShieldCheck } from '../ui/icons'
-import { Stagger } from '../ui/motion'
-import { fadeUp, listItem } from '../ui/variants'
-import { PageHeader } from '../ui/PageHeader'
-
-function since(iso: string): string {
-  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes} min ago`
-  if (minutes < 60 * 24) return `${Math.round(minutes / 60)} h ago`
-  return new Date(iso).toLocaleString()
-}
 
 export function Security() {
   const { startAction } = useAuth()
@@ -27,21 +24,28 @@ export function Security() {
   const notify = useToast()
   const [security, setSecurity] = useState<SecurityState | null>(null)
   const [sessions, setSessions] = useState<Session[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [confirmOthers, setConfirmOthers] = useState(false)
+  const [savingPolicy, setSavingPolicy] = useState(false)
 
-  const load = useCallback(
-    () =>
-      Promise.all([api<SecurityState>('/v1/me/security'), api<Session[]>('/v1/me/sessions')]).then(
-        ([status, list]) => {
-          setSecurity(status)
-          setSessions(list)
-        },
-      ),
-    [],
-  )
+  const load = useCallback(() => {
+    return Promise.all([
+      api<SecurityState>('/v1/me/security'),
+      api<Session[]>('/v1/me/sessions'),
+    ]).then(
+      ([status, list]) => {
+        setError(null)
+        setSecurity(status)
+        setSessions(list)
+      },
+      (err: unknown) =>
+        setError(err instanceof ApiError ? err.code : 'Could not load your sessions'),
+    )
+  }, [])
 
   useEffect(() => {
-    load().catch(() => notify('Could not load your security settings', 'bad'))
-  }, [load, notify])
+    void load()
+  }, [load])
 
   async function run(action: () => Promise<unknown>, success: string) {
     try {
@@ -62,136 +66,192 @@ export function Security() {
   const others = sessions?.filter((s) => !s.current) ?? []
 
   return (
-    <Stagger className="page">
-      <PageHeader
-        icon={ShieldCheck}
-        title="Security"
-        subtitle="Two-factor authentication and where you're signed in."
-      />
-
-      <div className="grid">
-        <motion.article className="card" variants={fadeUp}>
-          <h2 className="card-title">Two-factor authentication</h2>
-          {!security ? (
-            <div className="skeleton-lines" aria-busy="true">
-              <span />
-              <span />
-            </div>
-          ) : (
-            <div className="stack">
-              <p className="status-line">
-                <span className={`dot ${security.mfa_enrolled ? 'dot-ok' : 'dot-warn'}`} />
-                {security.mfa_enrolled ? 'Enabled — sign-in asks for a code' : 'Not set up'}
+    <Page title="Security" description="How you sign in, and where you're signed in right now.">
+      <Section
+        title="Sign-in"
+        description="Protect your account with a second factor from an authenticator app."
+      >
+        <div className="settings">
+          <div className="setting">
+            <div className="setting__text">
+              <h3>
+                Two-factor authentication
+                {security &&
+                  (security.mfa_enrolled ? (
+                    <Badge tone="success" icon={ShieldCheck}>
+                      On
+                    </Badge>
+                  ) : (
+                    <Badge tone="warning" icon={ShieldAlert}>
+                      Off
+                    </Badge>
+                  ))}
+              </h3>
+              <p>
+                {security?.mfa_enrolled
+                  ? 'Sign-in asks for a code from your authenticator app. Keep recovery codes somewhere safe.'
+                  : 'Anyone with your password can sign in. Add an authenticator app to require a code.'}
               </p>
-              {security.mfa_enrolled ? (
+            </div>
+            <div className="setting__control">
+              {!security ? (
+                <Skeleton width={140} height={30} />
+              ) : security.mfa_enrolled ? (
                 <>
-                  <button
-                    className="btn"
-                    onClick={() => startAction('CONFIGURE_RECOVERY_AUTHN_CODES')}
+                  <Button onClick={() => startAction('CONFIGURE_RECOVERY_AUTHN_CODES')}>
+                    Recovery codes
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    trailingIcon={ExternalLink}
+                    onClick={() =>
+                      window.open(
+                        `${oidcConfig.authority}/account/account-security/signing-in`,
+                        '_blank',
+                        'noopener',
+                      )
+                    }
                   >
-                    Generate recovery codes
-                  </button>
-                  <a
-                    className="link"
-                    href={`${oidcConfig.authority}/account/account-security/signing-in`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Manage authenticators ↗
-                  </a>
+                    Manage
+                  </Button>
                 </>
               ) : (
-                <button className="btn btn-primary" onClick={() => startAction('CONFIGURE_TOTP')}>
+                <Button variant="primary" onClick={() => startAction('CONFIGURE_TOTP')}>
                   Set up authenticator app
-                </button>
+                </Button>
               )}
             </div>
-          )}
-        </motion.article>
-
-        {current && can('org.security') && (
-          <motion.article className="card" variants={fadeUp}>
-            <h2 className="card-title">{current.name} policy</h2>
-            <label className="switch">
-              <input
-                type="checkbox"
-                role="switch"
-                checked={current.require_mfa}
-                onChange={(e) =>
-                  run(
-                    () =>
-                      api<Org>(`/v1/orgs/${current.id}/security`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({ require_mfa: e.target.checked }),
-                      }),
-                    e.target.checked
-                      ? 'Two-factor authentication is now required'
-                      : 'Two-factor requirement turned off',
-                  )
-                }
-              />
-              <span className="switch-track" aria-hidden="true" />
-              <span>Require two-factor authentication for every member</span>
-            </label>
-            <p className="muted small">
-              Members without it are asked to set it up at their next sign-in and can't open this
-              organization until they do.
-            </p>
-          </motion.article>
-        )}
-      </div>
-
-      <motion.article className="card" variants={fadeUp}>
-        <header className="account-head">
-          <h2 className="card-title">Active sessions</h2>
-          {others.length > 0 && (
-            <button
-              className="btn btn-sm btn-danger"
-              onClick={() =>
-                run(
-                  () => api('/v1/me/sessions/revoke-others', { method: 'POST' }),
-                  'Signed out of all other sessions',
-                )
-              }
-            >
-              Sign out everywhere else
-            </button>
-          )}
-        </header>
-        {!sessions ? (
-          <div className="skeleton-lines" aria-busy="true">
-            <span />
-            <span />
           </div>
-        ) : (
-          <ul className="rows">
-            <AnimatePresence initial={false}>
-              {sessions.map((s) => (
-                <motion.li
-                  key={s.id}
-                  className="row"
-                  variants={listItem}
-                  initial="hidden"
-                  animate="show"
-                  exit="exit"
-                  layout
-                >
-                  <span className="session-icon" aria-hidden="true">
-                    ⌁
-                  </span>
-                  <span className="row-main">
-                    <strong>
-                      {s.ip_address || 'Unknown address'}{' '}
-                      {s.current && <span className="pill">This session</span>}
-                    </strong>
-                    <span className="muted small">
-                      Signed in {since(s.started_at)} · active {since(s.last_access_at)}
-                      {s.clients.length ? ` · ${s.clients.join(', ')}` : ''}
+        </div>
+      </Section>
+
+      {current && can('org.security') && (
+        <Section
+          title="Organization policy"
+          description={`Rules that apply to everyone in ${current.name}.`}
+        >
+          <div className="settings">
+            <div className="setting">
+              <div className="setting__text">
+                <h3>Require two-factor authentication</h3>
+                <p>
+                  Members without a second factor are asked to set one up at their next sign-in and
+                  can't open {current.name} until they do. You need two-factor yourself to turn this
+                  on.
+                </p>
+              </div>
+              <div className="setting__control">
+                <Switch
+                  label="Require two-factor authentication"
+                  checked={current.require_mfa}
+                  disabled={savingPolicy}
+                  onChange={async (on) => {
+                    setSavingPolicy(true)
+                    await run(
+                      () =>
+                        api<Org>(`/v1/orgs/${current.id}/security`, {
+                          method: 'PATCH',
+                          body: JSON.stringify({ require_mfa: on }),
+                        }),
+                      on
+                        ? 'Two-factor authentication is now required'
+                        : 'Two-factor requirement turned off',
+                    )
+                    setSavingPolicy(false)
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </Section>
+      )}
+
+      <Section
+        title="Sessions"
+        description="Browsers and devices signed in to your account. Revoked sessions are signed out on their next request."
+        actions={
+          others.length > 0 && (
+            <Button variant="danger-ghost" icon={LogOut} onClick={() => setConfirmOthers(true)}>
+              Sign out everywhere else
+            </Button>
+          )
+        }
+      >
+        {error && (
+          <Alert
+            tone="danger"
+            title="Couldn't load sessions"
+            actions={
+              <Button size="sm" onClick={load}>
+                Try again
+              </Button>
+            }
+          >
+            {error}
+          </Alert>
+        )}
+        {!error && (
+          <DataTable
+            label="sessions"
+            rows={sessions}
+            rowKey={(s) => s.id}
+            empty={{
+              icon: Laptop,
+              title: 'No active sessions',
+              text: 'Sessions appear here when you sign in.',
+            }}
+            columns={[
+              {
+                key: 'session',
+                header: 'Session',
+                main: true,
+                render: (s) => (
+                  <span className="cell-primary">
+                    <span className="empty__icon" style={{ width: 30, height: 30, margin: 0 }}>
+                      <Laptop size={15} strokeWidth={ICON_STROKE} />
+                    </span>
+                    <span className="cell-stack">
+                      <strong className="row" style={{ gap: 6 }}>
+                        {s.ip_address || 'Unknown address'}
+                        {s.current && (
+                          <Badge tone="success" dot>
+                            This session
+                          </Badge>
+                        )}
+                      </strong>
+                      <span>{s.clients.join(', ') || 'Riven'}</span>
                     </span>
                   </span>
-                  {!s.current && (
-                    <button
-                      className="btn btn-sm btn-danger"
+                ),
+              },
+              {
+                key: 'started',
+                header: 'Signed in',
+                render: (s) => (
+                  <span className="t-sm t-muted" title={dateTime(s.started_at)}>
+                    {relativeTime(s.started_at)}
+                  </span>
+                ),
+              },
+              {
+                key: 'active',
+                header: 'Last active',
+                render: (s) => (
+                  <span className="t-sm t-muted">{relativeTime(s.last_access_at)}</span>
+                ),
+              },
+              {
+                key: 'actions',
+                actions: true,
+                header: '',
+                align: 'right',
+                shrink: true,
+                hideLabelOnMobile: true,
+                render: (s) =>
+                  s.current ? null : (
+                    <Button
+                      variant="danger-ghost"
+                      size="sm"
                       onClick={() =>
                         run(
                           () => api(`/v1/me/sessions/${s.id}`, { method: 'DELETE' }),
@@ -200,14 +260,30 @@ export function Security() {
                       }
                     >
                       Revoke
-                    </button>
-                  )}
-                </motion.li>
-              ))}
-            </AnimatePresence>
-          </ul>
+                    </Button>
+                  ),
+              },
+            ]}
+          />
         )}
-      </motion.article>
-    </Stagger>
+      </Section>
+
+      {confirmOthers && (
+        <ConfirmDialog
+          title="Sign out everywhere else?"
+          confirmLabel={`Sign out ${others.length} session${others.length === 1 ? '' : 's'}`}
+          onClose={() => setConfirmOthers(false)}
+          onConfirm={() =>
+            run(
+              () => api('/v1/me/sessions/revoke-others', { method: 'POST' }),
+              'Signed out of all other sessions',
+            )
+          }
+        >
+          Every other browser and device is signed out on its next request. This session stays
+          signed in.
+        </ConfirmDialog>
+      )}
+    </Page>
   )
 }

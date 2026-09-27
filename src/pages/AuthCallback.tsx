@@ -2,27 +2,33 @@ import { useEffect, useState } from 'react'
 
 import { completeSignIn } from '../auth/userManager'
 import { navigate } from '../router'
-import { Spinner } from '../ui/Spinner'
+import { Alert } from '../ui/Alert'
+import { Button } from '../ui/Button'
+import { FullScreen, LoadingScreen } from '../ui/FullScreen'
 
 export function AuthCallback() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     completeSignIn()
-      .then((returnTo) => navigate(returnTo.startsWith('/auth') ? '/' : returnTo, { replace: true }))
+      .then((returnTo) =>
+        navigate(returnTo.startsWith('/auth') ? '/' : returnTo, { replace: true }),
+      )
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
   }, [])
 
-  if (error) {
-    return (
-      <div className="center-screen">
-        <h2>Sign-in did not complete</h2>
-        <p className="muted">{error}</p>
-        <button className="btn btn-primary" onClick={() => navigate('/', { replace: true })}>
+  if (!error) return <LoadingScreen label="Signing you in…" />
+  return (
+    <FullScreen
+      title="Sign-in didn't complete"
+      description="The sign-in link expired or was already used."
+    >
+      <Alert tone="danger">{error}</Alert>
+      <div>
+        <Button variant="primary" onClick={() => navigate('/', { replace: true })}>
           Back to sign in
-        </button>
+        </Button>
       </div>
-    )
-  }
-  return <Spinner label="Signing you in…" />
+    </FullScreen>
+  )
 }

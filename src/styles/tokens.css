@@ -1,0 +1,162 @@
+/*
+ * Riven design tokens (S10.1.1). Every colour, size and timing in the app comes from here.
+ * See docs/design-system.md for the roles and how to use them.
+ *
+ * Themes are two intentional palettes, not an inversion: light sits on a warm paper canvas
+ * with white surfaces; dark sits on a near-black canvas with lifted graphite surfaces.
+ */
+
+:root {
+  /* Typography */
+  --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --text-display: 600 26px/32px var(--font-sans);
+  --text-h1: 600 20px/28px var(--font-sans);
+  --text-h2: 600 15px/22px var(--font-sans);
+  --text-body: 400 14px/21px var(--font-sans);
+  --text-body-strong: 500 14px/21px var(--font-sans);
+  --text-sm: 400 13px/19px var(--font-sans);
+  --text-label: 500 13px/18px var(--font-sans);
+  --text-caption: 400 12px/16px var(--font-sans);
+  --text-overline: 600 11px/16px var(--font-sans);
+  --text-mono: 400 12.5px/18px var(--font-mono);
+
+  --tracking-display: -0.022em;
+  --tracking-heading: -0.012em;
+  --tracking-overline: 0.06em;
+
+  /* Spacing (4px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --page-x: 40px;
+  --page-y: 32px;
+  --section-gap: 36px;
+  --content-max: 1120px;
+  --sidebar-w: 244px;
+
+  /* Shape */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --control-h: 36px;
+  --control-h-sm: 30px;
+
+  /* Motion: short and decelerating; nothing bounces */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 260ms;
+
+  /* Light palette */
+  --canvas: #fafaf8;
+  --sidebar: #f3f3f0;
+  --surface: #ffffff;
+  --surface-sunken: #f5f5f2;
+  --surface-hover: #f0f0ec;
+  --surface-selected: #ecedfb;
+  --overlay: rgba(24, 24, 27, 0.32);
+
+  --border: #e6e6e1;
+  --border-strong: #d4d4ce;
+  --border-focus: #5256d8;
+
+  --text: #18181b;
+  --text-secondary: #46464d;
+  --text-muted: #73737b;
+  --text-faint: #a1a1a8;
+  --text-inverse: #ffffff;
+
+  --accent: #4f53d9;
+  --accent-hover: #4246c6;
+  --accent-active: #373aa9;
+  --accent-text: #3f43c2;
+  --accent-subtle: #eeeefc;
+  --focus-ring: 0 0 0 3px rgba(79, 83, 217, 0.22);
+
+  --success: #17804f;
+  --success-subtle: #e8f4ed;
+  --warning: #9d5f0a;
+  --warning-subtle: #fbf1df;
+  --danger: #c53a31;
+  --danger-hover: #ad3129;
+  --danger-subtle: #fcecea;
+  --info: #2861c4;
+  --info-subtle: #eaf0fb;
+
+  --shadow-xs: 0 1px 2px rgba(20, 20, 24, 0.05);
+  --shadow-sm: 0 1px 2px rgba(20, 20, 24, 0.06), 0 2px 6px -2px rgba(20, 20, 24, 0.06);
+  --shadow-pop: 0 12px 32px -8px rgba(20, 20, 24, 0.18), 0 2px 6px rgba(20, 20, 24, 0.06);
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --canvas: #0f1012;
+  --sidebar: #131416;
+  --surface: #17181b;
+  --surface-sunken: #1c1d21;
+  --surface-hover: #212226;
+  --surface-selected: #22244a;
+  --overlay: rgba(0, 0, 0, 0.55);
+
+  --border: #26272c;
+  --border-strong: #35363d;
+  --border-focus: #8185f5;
+
+  --text: #ececef;
+  --text-secondary: #c4c4cb;
+  --text-muted: #8f8f98;
+  --text-faint: #5f5f68;
+  --text-inverse: #ffffff;
+
+  --accent: #5a5ee6;
+  --accent-hover: #6a6ef0;
+  --accent-active: #4d51d4;
+  --accent-text: #a1a4fb;
+  --accent-subtle: #1f2145;
+  --focus-ring: 0 0 0 3px rgba(129, 133, 245, 0.3);
+
+  --success: #4cc38a;
+  --success-subtle: rgba(76, 195, 138, 0.12);
+  --warning: #e3a748;
+  --warning-subtle: rgba(227, 167, 72, 0.12);
+  --danger: #f0736b;
+  --danger-hover: #f58b84;
+  --danger-subtle: rgba(240, 115, 107, 0.12);
+  --info: #74a6f5;
+  --info-subtle: rgba(116, 166, 245, 0.12);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 16px 40px -8px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--border-strong);
+
+  color-scheme: dark;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --page-x: 28px;
+    --page-y: 24px;
+    --section-gap: 32px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --page-x: 16px;
+    --page-y: 20px;
+    --section-gap: 28px;
+  }
+}

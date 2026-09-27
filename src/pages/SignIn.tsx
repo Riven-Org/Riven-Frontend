@@ -1,147 +1,115 @@
-import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useState } from 'react'
-
 import { useAuth } from '../auth/context'
-import { Fingerprint, GitHubIcon, GoogleIcon, Lock, Mail, ShieldCheck, Sparkles } from '../ui/icons'
+import { Button } from '../ui/Button'
+import {
+  Fingerprint,
+  GitHubIcon,
+  GoogleIcon,
+  ICON_STROKE,
+  Lock,
+  Mail,
+  ShieldCheck,
+  Workflow,
+} from '../ui/icons'
 import { Logo } from '../ui/Logo'
-import { ease, fadeUp, stagger } from '../ui/variants'
 
-const WORDS = ['every change.', 'every AI agent.', 'every bug fixed.', 'every release.']
-
-const PILLARS = [
+const PRINCIPLES = [
   {
     icon: ShieldCheck,
-    title: 'Verify',
-    text: 'Every change runs in an isolated sandbox and is judged by an independent verifier.',
+    title: 'Independent verification',
+    text: 'Each change runs in an isolated sandbox and is judged by a verifier that never produced it.',
   },
   {
     icon: Fingerprint,
-    title: 'Remember',
-    text: 'Confirmed bugs become memory, and every fix becomes a regression lock.',
+    title: 'Institutional memory',
+    text: 'Confirmed bugs are remembered, and every fix becomes a regression lock.',
   },
   {
-    icon: Sparkles,
-    title: 'Learn',
-    text: 'A causal graph links requirement → change → bug → fix → test.',
+    icon: Workflow,
+    title: 'A causal record',
+    text: 'Requirements, changes, bugs, fixes and tests stay linked, so you can see why code exists.',
   },
 ]
-
-function RotatingWord() {
-  const [index, setIndex] = useState(0)
-  useEffect(() => {
-    const id = window.setInterval(() => setIndex((i) => (i + 1) % WORDS.length), 2600)
-    return () => window.clearInterval(id)
-  }, [])
-  return (
-    <span style={{ display: 'inline-block', position: 'relative' }}>
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={WORDS[index]}
-          className="hero-word"
-          initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          exit={{ opacity: 0, y: -24, filter: 'blur(8px)' }}
-          transition={{ duration: 0.5, ease }}
-        >
-          {WORDS[index]}
-        </motion.span>
-      </AnimatePresence>
-    </span>
-  )
-}
 
 export function SignIn() {
   const { signIn } = useAuth()
 
   return (
-    <div className="signin">
-      <section className="signin-hero">
-        <div className="orb orb-a" />
-        <div className="orb orb-b" />
-        <div className="orb orb-c" />
-        <motion.div className="signin-hero-copy" variants={stagger} initial="hidden" animate="show">
-          <motion.span className="eyebrow" variants={fadeUp}>
-            <Sparkles size={14} /> Independent verification for AI-built software
-          </motion.span>
-          <motion.h1 className="hero-title" variants={fadeUp}>
-            Verify. Remember.
-            <br />
-            Learn from <RotatingWord />
-          </motion.h1>
-          <ul className="pillars">
-            {PILLARS.map(({ icon: Icon, title, text }) => (
-              <motion.li key={title} variants={fadeUp} whileHover={{ x: 6 }}>
-                <span className="pillar-icon">
-                  <Icon size={18} />
-                </span>
-                <span>
-                  <strong>{title}</strong>
-                  <span>{text}</span>
-                </span>
-              </motion.li>
-            ))}
-          </ul>
-        </motion.div>
-      </section>
-
-      <main className="signin-panel">
-        <motion.div
-          className="signin-card"
-          initial={{ opacity: 0, y: 30, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.7, ease, delay: 0.15 }}
-        >
-          <div className="signin-brand">
-            <Logo size={30} />
-            <span>Riven</span>
+    <div className="auth">
+      <main className="auth__main">
+        <span className="brand">
+          <Logo size={24} />
+          Riven
+        </span>
+        <div className="auth__form">
+          <div className="auth__heading">
+            <h1 className="t-display">Sign in to Riven</h1>
+            <p>Verification and memory for software built with AI.</p>
           </div>
-          <div>
-            <h2>Welcome back</h2>
-            <p className="muted" style={{ marginTop: 6 }}>
-              Sign in to your verification workspace.
+          <div className="auth__providers">
+            <Button block icon={GitHubIconAdapter} onClick={() => signIn({ provider: 'github' })}>
+              Continue with GitHub
+            </Button>
+            <Button block icon={GoogleIconAdapter} onClick={() => signIn({ provider: 'google' })}>
+              Continue with Google
+            </Button>
+          </div>
+          <div className="auth__divider">or</div>
+          <div className="auth__providers">
+            <Button variant="primary" block icon={Mail} onClick={() => signIn()}>
+              Continue with email
+            </Button>
+            <p className="t-sm t-muted" style={{ textAlign: 'center' }}>
+              New to Riven?{' '}
+              <button
+                className="btn btn--ghost btn--sm"
+                style={{ color: 'var(--accent-text)', padding: '0 4px' }}
+                onClick={() => signIn({ register: true })}
+              >
+                Create an account
+              </button>
             </p>
           </div>
-
-          <div className="stack">
-            <motion.button
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              className="btn btn-social"
-              onClick={() => signIn({ provider: 'github' })}
-            >
-              <GitHubIcon /> Continue with GitHub
-            </motion.button>
-            <motion.button
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              className="btn btn-social"
-              onClick={() => signIn({ provider: 'google' })}
-            >
-              <GoogleIcon /> Continue with Google
-            </motion.button>
-            <div className="divider">
-              <span>or</span>
-            </div>
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              className="btn btn-primary"
-              onClick={() => signIn()}
-            >
-              <Mail size={17} /> Continue with email
-            </motion.button>
-          </div>
-
-          <p className="fine">
-            New to Riven?{' '}
-            <button className="link" onClick={() => signIn({ register: true })}>
-              Create an account
-            </button>
-          </p>
-          <div className="signin-foot">
-            <Lock size={13} /> Secured with PKCE, verified email and optional 2FA
-          </div>
-        </motion.div>
+        </div>
+        <div className="auth__foot">
+          <span className="row" style={{ gap: 6 }}>
+            <Lock size={12} strokeWidth={ICON_STROKE} /> PKCE sign-in · verified email · optional
+            2FA
+          </span>
+          <span>© Riven</span>
+        </div>
       </main>
+      <aside className="auth__aside" aria-label="About Riven">
+        <blockquote>Riven never approves its own work.</blockquote>
+        <ul className="principles">
+          {PRINCIPLES.map(({ icon: Icon, title, text }) => (
+            <li key={title}>
+              <span className="principles__icon">
+                <Icon size={16} strokeWidth={ICON_STROKE} />
+              </span>
+              <span>
+                <strong>{title}</strong>
+                <span>{text}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="pipeline" aria-label="Pipeline">
+          {['Capture', 'Sandbox', 'Verify', 'Remember', 'Lock'].map((s, i) => (
+            <span key={s} style={{ display: 'contents' }}>
+              {i > 0 && <span style={{ border: 0, background: 'none', padding: 0 }}>→</span>}
+              <span>{s}</span>
+            </span>
+          ))}
+        </div>
+      </aside>
     </div>
   )
+}
+
+function GitHubIconAdapter({ size }: { size?: number }) {
+  return <GitHubIcon size={size} />
+}
+
+function GoogleIconAdapter({ size }: { size?: number }) {
+  return <GoogleIcon size={size} />
 }
